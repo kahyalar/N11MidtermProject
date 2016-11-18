@@ -1,11 +1,11 @@
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import org.junit.*;
 import static org.junit.Assert.*;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.firefox.FirefoxDriver;
 
 public class TestCase {
     private WebDriver driver;
@@ -14,12 +14,16 @@ public class TestCase {
     private StringBuffer verificationErrors = new StringBuffer();
 
     //Login Info
-    String email = "pandafirarda@gmail.com";
-    String password = "n11testcase";
+    private String email = "pandafirarda@gmail.com";
+    private String password = "n11testcase";
 
     //XPathes
-    String kitapUstMenu = "//nav[@class=\"catMenu\"]/ul/li[8]";
-    String kitapAltMenu = "//li[@class=\"mainCat\"][1]";
+    private String bookTopMenu = "//nav[@class=\"catMenu\"]/ul/li[8]";
+    private String bookLowMenu = "//li[@class=\"mainCat\"][1]";
+    private String authors = "//div[@id='authorsList']/div/ul/li/a";
+    private String section09 = "//span[@class='alphabetSearch'][1]";
+    private String lastAuthor = "//div[@id='authorsList']/div[4]/ul/li[19]/a";
+    private String buttonSecondPage = "//div[@class='pagination']/a[2]";
 
 
     @Before
@@ -30,7 +34,7 @@ public class TestCase {
         driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
     }
 
-    public void facebookLogin(String mail, String pass){
+    private void facebookLogin(String mail, String pass){
         driver.findElement(By.id("email")).click();
         driver.findElement(By.id("email")).clear();
         driver.findElement(By.id("email")).sendKeys(email);
@@ -40,7 +44,8 @@ public class TestCase {
         driver.findElement(By.id("u_0_2")).click();
     }
 
-    public void loginOperations(){
+    //First 5 line of code, found from internet. Stands for handling pop-up login operation.
+    private void loginOperations(){
         Set<String> set=driver.getWindowHandles();
         Iterator<String> facebookPopUp = set.iterator();
         String parent=facebookPopUp.next();
@@ -52,20 +57,38 @@ public class TestCase {
 
     @Test
     public void testCase() throws Exception {
-
         driver.get(baseUrl + "/");
         driver.findElement(By.className("sgm-notification-close")).click();
         driver.findElement(By.className("btnSignIn")).click();
         driver.findElement(By.className("facebookBtn")).click();
         loginOperations();
-        Thread.sleep(1500);
+        Thread.sleep(1500); //Waits 1.5 seconds for completing all login operations and page loads.
         assertEquals("n11.com - Alışverişin Uğurlu Adresi", driver.getTitle());
-        driver.findElement(By.xpath(kitapUstMenu)).click();
-        //driver.findElement(By.className("fancybox-close")).click();
-        driver.findElement(By.xpath(kitapAltMenu)).click();
+        driver.findElement(By.xpath(bookTopMenu)).click();
+        driver.findElement(By.xpath(bookLowMenu)).click();
         assertEquals("Kitap", driver.findElement(By.cssSelector("h1")).getText());
         driver.findElement(By.linkText("Tüm Liste")).click();
         assertEquals("Yazarlar - Türk ve Yabancı Yazarlar - n11.com", driver.getTitle());
+        driver.findElement(By.xpath(section09)).click();//Driver click's to 0-9 section. Beacuse we don't need them.
+
+        for (int i= 1; i <= 31; i++) {
+            driver.findElement(By.xpath(String.format("//span[@class='alphabetSearch'][%d]",i))).click();
+            List<WebElement> authorList = driver.findElements(By.xpath(authors));
+            if(authorList.size() == 80){
+                String authorNameLastIndex = driver.findElement(By.xpath(lastAuthor)).getAttribute("title");
+                driver.findElement(By.xpath(buttonSecondPage)).click();
+                for (int k = 1; k <= 4 ; k++) {
+                    List<WebElement> authorListSecondPage = driver.findElements(By.xpath(String.format("//div[@id='authorsList']/div[%d]/ul/li/a",k)));
+                    for (int j = 1; j <= authorListSecondPage.size(); j++) { // Checks the second page for comparing duplicate name.
+                        String authorNameSecondPage = driver.findElement(By.xpath(String.format("//div[@id='authorsList']/div/ul/li[%d]/a",j))).getAttribute("title");
+                        assertFalse(authorNameLastIndex.equals(authorNameSecondPage));
+                    }
+                }
+            }
+            else{
+                System.out.println(String.format("Assertion failed at index: %d", i));
+            }
+        }
         driver.close();
     }
 
